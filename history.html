@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reminder History - CareTrack</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-blue-50 font-sans min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="bg-white shadow-md p-4 flex justify-between items-center">
+    <div class="text-2xl font-bold text-blue-800">CareTrack</div>
+    <div class="space-x-4">
+      <a href="home.html" class="text-blue-600 hover:text-blue-800">Home</a>
+      <a href="reminder.html" class="text-blue-600 hover:text-blue-800">Reminders</a>
+      <a href="history.html" class="text-blue-600 hover:text-blue-800 font-bold underline">History</a>
+      <a href="medicine.html" class="text-blue-600 hover:text-blue-800">Medicine-info</a>
+    </div>
+  </nav>
+
+  <!-- Page Title -->
+  <section class="p-8 max-w-3xl mx-auto">
+
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold text-blue-900">📜 Reminder History</h1>
+      <button id="clearAllBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full">
+        Clear All
+      </button>
+    </div>
+
+    <!-- Reminder List -->
+    <div id="historyList" class="grid gap-4"></div>
+  </section>
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl p-8 shadow-lg w-full max-w-md relative">
+      <h2 class="text-2xl font-bold mb-4 text-blue-800">Edit Reminder</h2>
+      <form id="editForm" class="space-y-4">
+        <input type="hidden" id="editIndex" />
+        <div>
+          <label for="editMedicine" class="block font-semibold mb-1">Medicine Name</label>
+          <input type="text" id="editMedicine" required
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+        </div>
+        <div>
+          <label for="editTime" class="block font-semibold mb-1">Reminder Time</label>
+          <input type="time" id="editTime" required
+                 class="w-full px-4 py-2 border border-gray-300 rounded-lg" />
+        </div>
+        <div>
+          <label for="editNote" class="block font-semibold mb-1">Note (Optional)</label>
+          <textarea id="editNote" rows="3"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea>
+        </div>
+        <div>
+          <label for="editRepeat" class="inline-flex items-center space-x-2">
+            <input type="checkbox" id="editRepeat" class="form-checkbox h-5 w-5 text-blue-600" />
+            <span>Repeat Daily</span>
+          </label>
+        </div>
+        <div class="flex justify-end space-x-4">
+          <button type="button" id="cancelEdit" class="px-6 py-2 rounded-full bg-gray-300 hover:bg-gray-400">Cancel</button>
+          <button type="submit" class="px-6 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700">Save</button>
+        </div>
+      </form>
+      <button id="closeModal" class="absolute top-3 right-3 text-gray-600 hover:text-gray-900 text-2xl font-bold">&times;</button>
+    </div>
+  </div>
+
+  <script>
+    const historyList = document.getElementById("historyList");
+    const clearAllBtn = document.getElementById("clearAllBtn");
+    const editModal = document.getElementById("editModal");
+    const editForm = document.getElementById("editForm");
+    const editIndexInput = document.getElementById("editIndex");
+    const editMedicineInput = document.getElementById("editMedicine");
+    const editTimeInput = document.getElementById("editTime");
+    const editNoteInput = document.getElementById("editNote");
+    const editRepeatInput = document.getElementById("editRepeat");
+    const cancelEditBtn = document.getElementById("cancelEdit");
+    const closeModalBtn = document.getElementById("closeModal");
+
+    function loadReminders() {
+      historyList.innerHTML = "";
+      const reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+
+      if (reminders.length === 0) {
+        historyList.innerHTML = "<p class='text-center text-gray-600'>No reminders found.</p>";
+        return;
+      }
+
+      reminders.forEach((reminder, index) => {
+        const card = document.createElement("div");
+        card.className = "bg-white shadow-md p-6 rounded-2xl border border-blue-200 flex justify-between items-center";
+
+        card.innerHTML = `
+          <div>
+            <h2 class="text-xl font-bold text-blue-800 mb-2">🩺 ${reminder.medicine}</h2>
+            <p class="text-gray-700"><strong>⏰ Time:</strong> ${reminder.time}</p>
+            <p class="text-gray-700"><strong>📝 Note:</strong> ${reminder.note || "No note provided"}</p>
+            <p class="text-gray-700"><strong>🔁 Repeat:</strong> ${reminder.repeat ? "Yes (Daily)" : "No"}</p>
+          </div>
+          <div class="flex space-x-3">
+            <button class="bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2 px-4 rounded-full" onclick="openEditModal(${index})">Edit</button>
+            <button class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full" onclick="deleteReminder(${index})">Delete</button>
+          </div>
+        `;
+
+        historyList.appendChild(card);
+      });
+    }
+
+    function deleteReminder(index) {
+      let reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+      reminders.splice(index, 1);
+      localStorage.setItem("reminders", JSON.stringify(reminders));
+      loadReminders();
+      alert("Reminder deleted successfully!");
+    }
+
+    // Clear all reminders
+    clearAllBtn.addEventListener("click", () => {
+      if (confirm("Are you sure you want to delete ALL reminders? This action cannot be undone.")) {
+        localStorage.removeItem("reminders");
+        loadReminders();
+        alert("All reminders cleared!");
+      }
+    });
+
+    // Open edit modal and fill with current reminder data
+    function openEditModal(index) {
+      const reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+      const reminder = reminders[index];
+      if (!reminder) return;
+
+      editIndexInput.value = index;
+      editMedicineInput.value = reminder.medicine;
+      editTimeInput.value = reminder.time;
+      editNoteInput.value = reminder.note || "";
+      editRepeatInput.checked = reminder.repeat || false;
+
+      editModal.classList.remove("hidden");
+    }
+
+    // Close modal function
+    function closeEditModal() {
+      editModal.classList.add("hidden");
+      editForm.reset();
+    }
+
+    // Cancel button event
+    cancelEditBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      closeEditModal();
+    });
+
+    // Close (X) button event
+    closeModalBtn.addEventListener("click", closeEditModal);
+
+    // Handle edit form submission
+    editForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const index = parseInt(editIndexInput.value, 10);
+      let reminders = JSON.parse(localStorage.getItem("reminders")) || [];
+
+      reminders[index] = {
+        medicine: editMedicineInput.value.trim(),
+        time: editTimeInput.value,
+        note: editNoteInput.value.trim(),
+        repeat: editRepeatInput.checked
+      };
+
+      localStorage.setItem("reminders", JSON.stringify(reminders));
+      closeEditModal();
+      loadReminders();
+      alert("Reminder updated successfully!");
+    });
+
+    // Load reminders on page load
+    loadReminders();
+  </script>
+</body>
+</html>

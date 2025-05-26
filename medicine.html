@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Medicine Info - CareTrack</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-blue-50 min-h-screen font-sans flex flex-col items-center p-6">
+
+  <h1 class="text-4xl font-bold text-blue-900 mb-8">🔍 Medicine Information</h1>
+
+  <form id="searchForm" class="w-full max-w-lg flex gap-4 mb-6">
+    <input type="text" id="medicineInput" placeholder="Enter medicine name" required
+           class="flex-grow p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+    <button type="submit" class="bg-blue-600 text-white px-6 rounded-lg hover:bg-blue-700">Search</button>
+  </form>
+
+  <div id="result" class="bg-white p-6 rounded-xl shadow-md max-w-lg w-full text-gray-800 whitespace-pre-line"></div>
+
+  <script>
+    const form = document.getElementById("searchForm");
+    const medicineInput = document.getElementById("medicineInput");
+    const resultDiv = document.getElementById("result");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const medicineName = medicineInput.value.trim();
+      if (!medicineName) return;
+
+      resultDiv.textContent = "Fetching information... Please wait.";
+
+      try {
+        const response = await fetch("http://localhost:3000/medicine-info", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ medicine: medicineName }),
+        });
+
+        if (!response.ok) throw new Error("Network response was not ok");
+
+        const data = await response.json();
+        resultDiv.textContent = data.info;
+      } catch (error) {
+        resultDiv.textContent = "Error fetching medicine info. Please try again.";
+        console.error(error);
+      }
+    });
+  </script>
+
+</body>
+</html>

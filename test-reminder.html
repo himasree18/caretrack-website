@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test Reminder</title>
+</head>
+<body style="font-family:sans-serif; background:#f0f8ff; padding:30px">
+
+  <h2>🎯 Test Reminder with Notification + Alarm</h2>
+
+  <p>⏰ Set a time 1–2 minutes ahead and keep this tab open.</p>
+
+  <form id="form">
+    <label>Medicine Name: <input id="medicine" required /></label><br><br>
+    <label>Reminder Time (HH:MM): <input id="time" type="time" required /></label><br><br>
+    <button type="submit">Set Reminder</button>
+  </form>
+
+  <audio id="alarm" src="alarm.mp3" preload="auto"></audio>
+
+  <script>
+    const form = document.getElementById("form");
+    const alarm = document.getElementById("alarm");
+    let reminders = [];
+
+    // Ask for notification permission
+    window.onload = () => {
+      if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+      }
+    };
+
+    // Allow sound to play
+    document.addEventListener("click", () => {
+      alarm.play().then(() => alarm.pause()).catch(() => {});
+    }, { once: true });
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const medicine = document.getElementById("medicine").value;
+      const time = document.getElementById("time").value;
+      reminders.push({ medicine, time, triggered: false });
+      alert("Reminder set for " + time);
+    });
+
+    // Check every 15 seconds
+    setInterval(() => {
+      const now = new Date();
+      const current = now.toTimeString().slice(0,5);
+      reminders.forEach(reminder => {
+        if (reminder.time === current && !reminder.triggered) {
+          if (Notification.permission === "granted") {
+            new Notification(`⏰ Time for ${reminder.medicine}`);
+          }
+          alarm.play().catch(console.error);
+          reminder.triggered = true;
+        }
+      });
+    }, 15000);
+  </script>
+</body>
+</html>
